@@ -23,6 +23,7 @@
 package xyz.mijaljevic.liquibase_setup.runner;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -36,6 +37,7 @@ import xyz.mijaljevic.liquibase_setup.service.PersonService;
  *
  * @author Karlo Mijaljević
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PersonCreator implements ApplicationRunner {
@@ -77,6 +79,8 @@ public class PersonCreator implements ApplicationRunner {
 
     @Override
     public void run(@NonNull final ApplicationArguments args) {
+        log.info("Creating {} random persons...", NUMBER_OF_PERSONS_TO_CREATE);
+
         for (int i = 0; i < NUMBER_OF_PERSONS_TO_CREATE; i++) {
             final String name = NAMES[(int) (Math.random() * NAMES.length)]
                     + " "
@@ -90,6 +94,9 @@ public class PersonCreator implements ApplicationRunner {
             person.setAge(age);
 
             personService.createPerson(person);
+            log.info("Created person: {}", person);
         }
+
+        log.info("Finished creating random persons.");
     }
 }

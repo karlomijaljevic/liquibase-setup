@@ -1,0 +1,19 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="github-actions" id="002-auto-generated">
+        <addColumn tableName="person">
+            <column name="email" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="github-actions" id="002-auto-generated">
+        <addUniqueConstraint columnNames="email" constraintName="UC_PERSONEMAIL_COL" tableName="person"/>
+    </changeSet>
+    <changeSet author="github-actions" id="002-auto-generated">
+        <dropPrimaryKey tableName="person"/>
+    </changeSet>
+    <changeSet author="github-actions" id="002-auto-generated">
+        <addPrimaryKey columnNames="id" constraintName="personPK" tableName="person"/>
+    </changeSet>
+</databaseChangeLog>
