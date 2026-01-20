@@ -76,7 +76,6 @@ jobs:
 
       - name: Apply existing Liquibase migrations
         run: |
-          tree src || true
           mvn liquibase:update \
             -Dliquibase.url=jdbc:postgresql://localhost:5432/testdb \
             -Dliquibase.username=testuser \
