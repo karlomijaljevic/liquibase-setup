@@ -59,19 +59,19 @@ jobs:
 
       - name: Configure Liquibase for CI
         run: |
+          # Update entity package to match your actual package
+          ENTITY_PACKAGE="xyz.mijaljevic.liquibase_setup.entity"
+          
           cat > src/main/resources/liquibase-ci.properties << EOF
           referenceUrl=jdbc:postgresql://localhost:5432/testdb
           referenceDriver=org.postgresql.Driver
           referenceUsername=testuser
           referencePassword=testpass
           
-          url=hibernate:spring:xyz.mijaljevic.liquibase_setup.entity?dialect=org.hibernate.dialect.PostgreSQLDialect
+          url=hibernate:spring:${ENTITY_PACKAGE}?dialect=org.hibernate.dialect.PostgreSQLDialect
           driver=liquibase.ext.hibernate.database.connection.HibernateDriver
           
           changeLogFile=db.changelog-master.xml
-          outputChangeLogFile=new-changelog.xml
-          
-          liquibase.hub.mode=off
           EOF
 
       - name: Apply existing Liquibase migrations
@@ -87,7 +87,8 @@ jobs:
         run: |
           TEMP_CHANGELOG="temp-generated-changelog.xml"
           
-          mvn liquibase:diff \
+          # Run diff with all required dependencies on classpath
+          mvn compile liquibase:diff \
             -Dliquibase.propertyFile=src/main/resources/liquibase-ci.properties \
             -Dliquibase.changeLogFile="${TEMP_CHANGELOG}" \
             -Dliquibase.diffChangeLogFile="${TEMP_CHANGELOG}" || true
