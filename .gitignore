@@ -11,5 +11,5 @@ target/
 
 # Liquibase
 liquibase-ci.properties
-**/temp-generated-changelog.xml
+temp-generated-changelog.xml
 changelog_summary.txt

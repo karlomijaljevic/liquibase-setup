@@ -93,7 +93,7 @@ jobs:
             -Dliquibase.changeLogFile="${TEMP_CHANGELOG}" \
             -Dliquibase.diffChangeLogFile="${TEMP_CHANGELOG}" || true
           
-          if [ -f "src/main/resources/db/changelog/changes/${TEMP_CHANGELOG}" ]; then
+          if [ -f "${TEMP_CHANGELOG}" ]; then
             echo "changes_detected=true" >> $GITHUB_OUTPUT
             echo "temp_file=${TEMP_CHANGELOG}" >> $GITHUB_OUTPUT
           else
@@ -128,7 +128,7 @@ jobs:
           NEW_CHANGELOG_PATH="${CHANGELOG_DIR}/${NEW_CHANGELOG}"
           
           # Move and rename
-          mv "${CHANGELOG_DIR}/${TEMP_CHANGELOG}" "${NEW_CHANGELOG_PATH}"
+          mv "${TEMP_CHANGELOG}" "${NEW_CHANGELOG_PATH}"
           
           # Update changeset ID and author
           sed -i "s/author=\"[^\"]*\"/author=\"github-actions\"/" "${NEW_CHANGELOG_PATH}"
