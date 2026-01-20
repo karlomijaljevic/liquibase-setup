@@ -54,4 +54,12 @@ public class Person {
             nullable = false
     )
     private Integer age;
+
+    @Column(
+            name = "email",
+            nullable = false,
+            length = 150,
+            unique = true
+    )
+    private String email;
 }

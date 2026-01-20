@@ -59,19 +59,19 @@ jobs:
 
       - name: Configure Liquibase for CI
         run: |
-          cat > src/main/resources/liquibase-ci.properties << EOF
-          referenceUrl=jdbc:postgresql://localhost:5432/testdb
-          referenceDriver=org.postgresql.Driver
-          referenceUsername=testuser
-          referencePassword=testpass
+          # Update entity package to match your actual package
+          ENTITY_PACKAGE="xyz.mijaljevic.liquibase_setup.entity"
           
-          url=hibernate:spring:xyz.mijaljevic.liquibase_setup.entity?dialect=org.hibernate.dialect.PostgreSQLDialect
-          driver=liquibase.ext.hibernate.database.connection.HibernateDriver
+          cat > src/main/resources/liquibase-ci.properties << EOF
+          referenceUrl=hibernate:spring:${ENTITY_PACKAGE}?dialect=org.hibernate.dialect.PostgreSQLDialect
+          referenceDriver=liquibase.ext.hibernate.database.connection.HibernateDriver
+          
+          url=jdbc:postgresql://localhost:5432/testdb
+          driver=org.postgresql.Driver
+          username=testuser
+          password=testpass
           
           changeLogFile=db.changelog-master.xml
-          outputChangeLogFile=new-changelog.xml
-          
-          liquibase.hub.mode=off
           EOF
 
       - name: Apply existing Liquibase migrations
@@ -87,12 +87,13 @@ jobs:
         run: |
           TEMP_CHANGELOG="temp-generated-changelog.xml"
           
-          mvn liquibase:diff \
+          # Run diff with all required dependencies on classpath
+          mvn compile liquibase:diff \
             -Dliquibase.propertyFile=src/main/resources/liquibase-ci.properties \
             -Dliquibase.changeLogFile="${TEMP_CHANGELOG}" \
             -Dliquibase.diffChangeLogFile="${TEMP_CHANGELOG}" || true
           
-          if [ -f "src/main/resources/db/changelog/changes/${TEMP_CHANGELOG}" ]; then
+          if [ -f "${TEMP_CHANGELOG}" ]; then
             echo "changes_detected=true" >> $GITHUB_OUTPUT
             echo "temp_file=${TEMP_CHANGELOG}" >> $GITHUB_OUTPUT
           else
@@ -127,7 +128,7 @@ jobs:
           NEW_CHANGELOG_PATH="${CHANGELOG_DIR}/${NEW_CHANGELOG}"
           
           # Move and rename
-          mv "${CHANGELOG_DIR}/${TEMP_CHANGELOG}" "${NEW_CHANGELOG_PATH}"
+          mv "${TEMP_CHANGELOG}" "${NEW_CHANGELOG_PATH}"
           
           # Update changeset ID and author
           sed -i "s/author=\"[^\"]*\"/author=\"github-actions\"/" "${NEW_CHANGELOG_PATH}"
