@@ -5,14 +5,14 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
     <changeSet id="seed-001-persons" author="developer" context="seed">
-        <sqlFile path="db/sql/insert-persons.sql"
-                 relativeToChangelogFile="false"
+        <sqlFile path="../sql/insert-persons.sql"
+                 relativeToChangelogFile="true"
                  splitStatements="true"
                  stripComments="true"/>
     </changeSet>
     <changeSet id="seed-002-person-sequence" author="developer" context="seed">
-        <sqlFile path="db/sql/person-sequence-update.sql"
-                 relativeToChangelogFile="false"
+        <sqlFile path="../sql/person-sequence-update.sql"
+                 relativeToChangelogFile="true"
                  splitStatements="true"
                  stripComments="true"/>
     </changeSet>
@@ -20,8 +20,8 @@
         <preConditions onFail="MARK_RAN">
             <sqlCheck expectedResult="0">SELECT COUNT(*) FROM users</sqlCheck>
         </preConditions>
-        <sqlFile path="db/sql/insert-persons.sql"
-                 relativeToChangelogFile="false"
+        <sqlFile path="../sql/insert-persons.sql"
+                 relativeToChangelogFile="true"
                  splitStatements="true"
                  stripComments="true"/>
     </changeSet>
