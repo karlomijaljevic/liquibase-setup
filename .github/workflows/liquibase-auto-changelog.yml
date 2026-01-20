@@ -76,7 +76,6 @@ jobs:
 
       - name: Apply existing Liquibase migrations
         run: |
-          ls -la src/main/resources/db/changelog/
           ls -la src/main/resources/db/changelog/changes/
           mvn liquibase:update \
             -Dliquibase.url=jdbc:postgresql://localhost:5432/testdb \
