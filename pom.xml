@@ -25,6 +25,7 @@
         <liquibase-hibernate6.version>5.0.1</liquibase-hibernate6.version>
         <jakarta.validation.version>4.0.0-M1</jakarta.validation.version>
         <postgresql.version>42.7.9</postgresql.version>
+        <jakarta.persistence.version>3.2.0</jakarta.persistence.version>
     </properties>
 
     <dependencies>
@@ -56,6 +57,12 @@
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
             <version>${jakarta.validation.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>${jakarta.persistence.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -124,6 +131,11 @@
                         <groupId>jakarta.validation</groupId>
                         <artifactId>jakarta.validation-api</artifactId>
                         <version>${jakarta.validation.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>jakarta.persistence</groupId>
+                        <artifactId>jakarta.persistence-api</artifactId>
+                        <version>${jakarta.persistence.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
