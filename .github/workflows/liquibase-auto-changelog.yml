@@ -1,0 +1,246 @@
+name: Auto-Generate Liquibase Changelog
+
+on:
+  pull_request:
+    branches:
+      - development
+    paths:
+      - 'src/main/java/**/entity/**'
+      - 'src/main/java/**/model/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-changelog:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U testuser; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: Configure Liquibase for CI
+        run: |
+          cat > src/main/resources/liquibase-ci.properties << EOF
+          referenceUrl=jdbc:postgresql://localhost:5432/testdb
+          referenceDriver=org.postgresql.Driver
+          referenceUsername=testuser
+          referencePassword=testpass
+          
+          url=hibernate:spring:xyz.mijaljevic.liquibase_setup.entity?dialect=org.hibernate.dialect.PostgreSQLDialect
+          driver=liquibase.ext.hibernate.database.connection.HibernateDriver
+          
+          changeLogFile=db.changelog-master.xml
+          outputChangeLogFile=new-changelog.xml
+          
+          liquibase.hub.mode=off
+          EOF
+
+      - name: Apply existing Liquibase migrations
+        run: |
+          mvn liquibase:update \
+            -Dliquibase.url=jdbc:postgresql://localhost:5432/testdb \
+            -Dliquibase.username=testuser \
+            -Dliquibase.password=testpass \
+            -Dliquibase.changeLogFile=src/main/resources/db/changelog/db.changelog-master.xml
+
+      - name: Generate diff changelog
+        id: generate_diff
+        run: |
+          TEMP_CHANGELOG="temp-generated-changelog.xml"
+          
+          mvn liquibase:diff \
+            -Dliquibase.propertyFile=src/main/resources/liquibase-ci.properties \
+            -Dliquibase.changeLogFile="${TEMP_CHANGELOG}" \
+            -Dliquibase.diffChangeLogFile="${TEMP_CHANGELOG}" || true
+          
+          if [ -f "src/main/resources/db/changelog/changes/${TEMP_CHANGELOG}" ]; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+            echo "temp_file=${TEMP_CHANGELOG}" >> $GITHUB_OUTPUT
+          else
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+            echo "No entity changes detected that require a new changelog"
+          fi
+
+      - name: Create numbered changelog
+        if: steps.generate_diff.outputs.changes_detected == 'true'
+        id: create_changelog
+        run: |
+          CHANGELOG_DIR="src/main/resources/db/changelog/changes"
+          TEMP_CHANGELOG="${{ steps.generate_diff.outputs.temp_file }}"
+          
+          # Find next number
+          LAST_NUMBER=$(ls -1 ${CHANGELOG_DIR}/*.xml 2>/dev/null | \
+            sed 's/.*\/\([0-9]*\)-.*/\1/' | \
+            sort -n | \
+            tail -1)
+          
+          if [ -z "$LAST_NUMBER" ]; then
+            NEXT_NUMBER="001"
+          else
+            NEXT_NUMBER=$(printf "%03d" $((10#$LAST_NUMBER + 1)))
+          fi
+          
+          # Get PR title for description
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          SAFE_DESCRIPTION=$(echo "$PR_TITLE" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g' | cut -c1-50)
+          
+          NEW_CHANGELOG="${NEXT_NUMBER}-${SAFE_DESCRIPTION}.xml"
+          NEW_CHANGELOG_PATH="${CHANGELOG_DIR}/${NEW_CHANGELOG}"
+          
+          # Move and rename
+          mv "${CHANGELOG_DIR}/${TEMP_CHANGELOG}" "${NEW_CHANGELOG_PATH}"
+          
+          # Update changeset ID and author
+          sed -i "s/author=\"[^\"]*\"/author=\"github-actions\"/" "${NEW_CHANGELOG_PATH}"
+          sed -i "s/id=\"[^\"]*\"/id=\"${NEXT_NUMBER}-auto-generated\"/" "${NEW_CHANGELOG_PATH}"
+          
+          echo "changelog_file=${NEW_CHANGELOG}" >> $GITHUB_OUTPUT
+          echo "changelog_path=${NEW_CHANGELOG_PATH}" >> $GITHUB_OUTPUT
+          
+          echo "✓ Created changelog: ${NEW_CHANGELOG}"
+          echo "✓ No master changelog update needed - using includeAll"
+
+      - name: Extract changelog content
+        if: steps.generate_diff.outputs.changes_detected == 'true'
+        id: extract_content
+        run: |
+          CHANGELOG_PATH="${{ steps.create_changelog.outputs.changelog_path }}"
+          
+          # Extract the changeset content for the PR comment
+          CONTENT=$(cat "${CHANGELOG_PATH}")
+          
+          # Save to a file for the comment
+          cat > changelog_summary.txt << 'EOF'
+          ## 🔄 Auto-Generated Liquibase Changelog
+          
+          A new changelog has been automatically generated based on your JPA entity changes.
+          
+          **File:** `${{ steps.create_changelog.outputs.changelog_file }}`
+          
+          ### Changes Detected:
+          
+          ```xml
+          EOF
+          
+          cat "${CHANGELOG_PATH}" >> changelog_summary.txt
+          
+          echo '```' >> changelog_summary.txt
+          echo '' >> changelog_summary.txt
+          echo '### ⚠️ Action Required' >> changelog_summary.txt
+          echo '' >> changelog_summary.txt
+          echo 'Please review this auto-generated changelog:' >> changelog_summary.txt
+          echo '' >> changelog_summary.txt
+          echo '1. ✅ **Review the changes** - Ensure they match your intentions' >> changelog_summary.txt
+          echo '2. ✏️ **Edit if needed** - Update changeset IDs, add constraints, or split changes' >> changelog_summary.txt
+          echo '3. 🧪 **Test locally** - Run `mvn spring-boot:run -Dspring-boot.run.profiles=local`' >> changelog_summary.txt
+          echo '4. 💬 **Comment "approved"** once reviewed' >> changelog_summary.txt
+          echo '' >> changelog_summary.txt
+          echo '---' >> changelog_summary.txt
+          echo '' >> changelog_summary.txt
+          echo '> 🤖 Generated by GitHub Actions from entity changes in this PR' >> changelog_summary.txt
+
+      - name: Commit and push changelog
+        if: steps.generate_diff.outputs.changes_detected == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add src/main/resources/db/changelog/
+          git commit -m "🤖 Auto-generate Liquibase changelog: ${{ steps.create_changelog.outputs.changelog_file }}"
+          git push
+
+      - name: Comment on PR with changelog
+        if: steps.generate_diff.outputs.changes_detected == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('changelog_summary.txt', 'utf8');
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Request review
+        if: steps.generate_diff.outputs.changes_detected == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Add a label
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['changelog-review-required']
+            });
+            
+            // Request review from the PR author
+            const prAuthor = context.payload.pull_request.user.login;
+            
+            try {
+              await github.rest.pulls.requestReviewers({
+                pull_request_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                reviewers: [prAuthor]
+              });
+            } catch (error) {
+              console.log('Could not request review from author:', error.message);
+            }
+
+      - name: No changes detected
+        if: steps.generate_diff.outputs.changes_detected == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ No database schema changes detected. Entities are in sync with the database schema.'
+            });

@@ -1,0 +1,15 @@
+# Compiled class files
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+# Liquibase
+liquibase-ci.properties
+**/temp-generated-changelog.xml
+changelog_summary.txt
