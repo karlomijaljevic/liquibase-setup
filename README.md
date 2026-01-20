@@ -1,4 +1,4 @@
-# liquibase-setup
+# Liquibase Automated Changelog Generation for Spring Boot with PostgreSQL
 
 This repository demonstrates an automated Liquibase workflow for a Spring Boot
 project using PostgreSQL. The primary goal is to automatically generate Liquibase
