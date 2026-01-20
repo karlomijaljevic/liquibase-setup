@@ -63,13 +63,13 @@ jobs:
           ENTITY_PACKAGE="xyz.mijaljevic.liquibase_setup.entity"
           
           cat > src/main/resources/liquibase-ci.properties << EOF
-          referenceUrl=jdbc:postgresql://localhost:5432/testdb
-          referenceDriver=org.postgresql.Driver
-          referenceUsername=testuser
-          referencePassword=testpass
+          referenceUrl=hibernate:spring:${ENTITY_PACKAGE}?dialect=org.hibernate.dialect.PostgreSQLDialect
+          referenceDriver=liquibase.ext.hibernate.database.connection.HibernateDriver
           
-          url=hibernate:spring:${ENTITY_PACKAGE}?dialect=org.hibernate.dialect.PostgreSQLDialect
-          driver=liquibase.ext.hibernate.database.connection.HibernateDriver
+          url=jdbc:postgresql://localhost:5432/testdb
+          driver=org.postgresql.Driver
+          username=testuser
+          password=testpass
           
           changeLogFile=db.changelog-master.xml
           EOF

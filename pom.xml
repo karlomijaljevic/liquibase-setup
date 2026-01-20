@@ -26,6 +26,7 @@
         <jakarta.validation.version>4.0.0-M1</jakarta.validation.version>
         <postgresql.version>42.7.9</postgresql.version>
         <jakarta.persistence.version>3.2.0</jakarta.persistence.version>
+        <jboss.logging.version>3.6.1.Final</jboss.logging.version>
     </properties>
 
     <dependencies>
@@ -63,6 +64,12 @@
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>${jakarta.persistence.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+            <version>${jboss.logging.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -136,6 +143,11 @@
                         <groupId>jakarta.persistence</groupId>
                         <artifactId>jakarta.persistence-api</artifactId>
                         <version>${jakarta.persistence.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging</artifactId>
+                        <version>${jboss.logging.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
