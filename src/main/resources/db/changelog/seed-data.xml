@@ -18,7 +18,7 @@
     </changeSet>
     <changeSet id="seed-003-conditional-persons" author="developer" context="seed-conditional">
         <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM users</sqlCheck>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM person</sqlCheck>
         </preConditions>
         <sqlFile path="../sql/insert-persons.sql"
                  relativeToChangelogFile="true"
